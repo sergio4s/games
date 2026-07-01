@@ -225,6 +225,20 @@ button{font-family:inherit; cursor:pointer; border:none;}
 .table-chip.weak{background:#FFE3DD; color:var(--coral-dark);}
 .table-chip.strong{background:#DFF7EC; color:var(--teal-dark);}
 
+.mastery-list{padding:0 18px 14px; display:flex; flex-direction:column; gap:10px;}
+.mastery-row{background:var(--card); border-radius:14px; padding:10px 14px; box-shadow:0 3px 0 rgba(0,0,0,.08);}
+.mastery-top{display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:13.5px; color:var(--ink); margin-bottom:6px;}
+.mastery-track{height:10px; background:#EDE7FA; border-radius:999px; overflow:hidden;}
+.mastery-fill{height:100%; border-radius:999px; background:linear-gradient(90deg,var(--teal),#5FE0A8); transition:width .5s ease;}
+
+.race-card{margin:0 18px 6px; background:var(--card); border-radius:18px; padding:16px; box-shadow:0 4px 0 rgba(0,0,0,.08); text-align:center;}
+.race-title{font-family:'Baloo 2'; font-weight:700; font-size:15px; color:var(--ink); margin-bottom:8px;}
+.race-row{display:flex; justify-content:space-around; align-items:center;}
+.race-col{display:flex; flex-direction:column; align-items:center;}
+.race-col .num{font-family:'Baloo 2'; font-size:22px; font-weight:700; color:var(--coral);}
+.race-col .lbl{font-size:11px; font-weight:800; color:var(--ink-soft);}
+.race-msg{margin-top:8px; font-weight:800; color:var(--teal-dark); font-size:13.5px;}
+
 .header-row{display:flex; align-items:center; gap:10px; padding:14px 16px 4px;}
 .header-row h2{margin:0; font-size:20px; color:var(--white); text-shadow:0 2px 0 rgba(0,0,0,.15);}
 
@@ -289,8 +303,13 @@ footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; pa
       <div class="stat-card"><div class="stat-num" id="statDays">0</div><div class="stat-label">Dias seguidos</div></div>
       <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Contas resolvidas</div></div>
     </div>
-    <div class="section-title">Tabuadas dominadas 🌟</div>
-    <div class="table-chip-row" id="strongChips"></div>
+
+    <div class="section-title">Você x você mesmo(a) 🏁</div>
+    <div class="race-card" id="raceCard"></div>
+
+    <div class="section-title">Domínio por tabuada 📈</div>
+    <div class="mastery-list" id="masteryList"></div>
+
     <div class="section-title">Precisam de reforço 💪</div>
     <div class="table-chip-row" id="weakChips"></div>
   </section>
@@ -314,9 +333,9 @@ footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; pa
 
 <div class="overlay" id="overlayNoHearts">
   <div class="overlay-card">
-    <span class="medal">💔</span>
-    <div class="overlay-title">Sem corações!</div>
-    <div class="overlay-sub" id="heartsRegenMsg">Numi está descansando. Volte em breve ou veja uma dica rápida!</div>
+    <span class="medal">😴</span>
+    <div class="overlay-title">Seu treino terminou por aqui!</div>
+    <div class="overlay-sub" id="heartsRegenMsg">Numi precisa descansar um pouquinho. Volte em breve ou veja uma dica rápida pra continuar agora!</div>
     <button class="btn btn-gold" id="btnWatchTip" style="width:100%; margin-bottom:10px;">🎬 Ver dica e ganhar 1 coração</button>
     <button class="btn btn-outline" id="btnBackHome2" style="width:100%;">Voltar para o mapa</button>
   </div>
@@ -366,11 +385,13 @@ function defaultState(){
     lastHeartLostAt:null,
     unlockedLevel:1,
     levelProgress:{},          // {1:{correct:0}}
-    factStats:{},              // {"2x3":{correct:0,wrong:0}}
+    factStats:{},              // {"2x3":{correct:0,wrong:0,box:1,dueQ:0,dueTime:null}}
+    qCounter:0,                // contador global de perguntas respondidas (usado na repetição espaçada)
     bestStreak:0,
     totalCorrect:0,
     totalWrong:0,
     daysPlayed:[],             // array of 'YYYY-MM-DD'
+    dailyStats:{},             // {'YYYY-MM-DD':{correct,wrong,timeMs,count}}
     achievements:[]
   };
 }
@@ -436,6 +457,48 @@ function getProgress(id){
   return state.levelProgress[id];
 }
 
+/* ---------------- Repetição espaçada (estilo Leitner: caixas 1-6) ---------------- */
+// Caixa 1-3: "due" medido em nº de perguntas (curto prazo, dentro da sessão)
+// Caixa 4-6: "due" medido em tempo real (médio/longo prazo, entre sessões/dias)
+const BOX_QUESTION_GAP = {1:2, 2:6, 3:15};                 // perguntas até reaparecer
+const BOX_TIME_GAP_MS  = {4:1*86400000, 5:3*86400000, 6:7*86400000}; // 1, 3, 7 dias
+
+function getFactStat(key){
+  if(!state.factStats[key]) state.factStats[key] = {correct:0, wrong:0, box:0, dueQ:0, dueTime:null};
+  // migração de saves antigos que não tinham box/due
+  const s = state.factStats[key];
+  if(s.box===undefined) s.box = 0;
+  if(s.dueQ===undefined) s.dueQ = 0;
+  if(s.dueTime===undefined) s.dueTime = null;
+  return s;
+}
+
+function isDue(key){
+  const s = getFactStat(key);
+  if(s.box===0) return true; // nunca visto -> sempre elegível
+  if(s.box<=3) return state.qCounter >= s.dueQ;
+  return s.dueTime !== null && Date.now() >= s.dueTime;
+}
+
+function scheduleAfterAnswer(key, correct){
+  const s = getFactStat(key);
+  if(!correct){
+    s.box = 1;
+    s.dueQ = state.qCounter + BOX_QUESTION_GAP[1];
+    s.dueTime = null;
+    return;
+  }
+  s.box = Math.min(6, (s.box||0) + 1);
+  if(s.box <= 3){
+    s.dueQ = state.qCounter + BOX_QUESTION_GAP[s.box];
+    s.dueTime = null;
+  } else {
+    s.dueTime = Date.now() + BOX_TIME_GAP_MS[s.box];
+  }
+}
+
+function masteryPercent(box){ return Math.round(Math.min(6,box||0)/6*100); }
+
 /* ---------------- Geração de perguntas ---------------- */
 function factKey(a,b){ return a+'x'+b; }
 function weakestFacts(tables){
@@ -453,13 +516,34 @@ function weakestFacts(tables){
   return list.slice(0,8);
 }
 
+function dueFacts(tables){
+  // fatos já vistos (box>0) que estão "vencidos" para revisão, dentro das tabelas da fase
+  const list = [];
+  for(const k in state.factStats){
+    const [a,b] = k.split('x').map(Number);
+    if(!(tables.includes(a) || tables.includes(b))) continue;
+    const s = state.factStats[k];
+    if(s.box>0 && s.box<6 && isDue(k)) list.push({a,b, box:s.box});
+  }
+  // prioriza os que estão em caixas mais baixas (mais urgentes de consolidar)
+  list.sort((x,y)=>x.box-y.box);
+  return list;
+}
+
 function generateQuestion(level){
   let a,b;
-  const useWeak = Math.random() < 0.35;
-  if(useWeak){
-    const weak = weakestFacts(level.tables);
-    if(weak.length){ const pick = weak[Math.floor(Math.random()*weak.length)]; a=pick.a; b=pick.b; }
+  // 1) prioridade máxima: fatos vencidos pela repetição espaçada (o "coração" do sistema)
+  const due = dueFacts(level.tables);
+  if(due.length && Math.random() < 0.55){
+    const pick = due[Math.floor(Math.random()*Math.min(5,due.length))];
+    a = pick.a; b = pick.b;
   }
+  // 2) fatos historicamente fracos
+  if(a===undefined){
+    const weak = weakestFacts(level.tables);
+    if(weak.length && Math.random() < 0.35){ const pick = weak[Math.floor(Math.random()*weak.length)]; a=pick.a; b=pick.b; }
+  }
+  // 3) aleatório dentro da fase (inclui fatos novos)
   if(a===undefined){
     a = level.tables[Math.floor(Math.random()*level.tables.length)];
     b = Math.floor(Math.random()* (level.id>=9?12:10)) + 1;
@@ -635,6 +719,7 @@ function nextQuestion(){
   document.getElementById('feedbackMsg').textContent = '';
   document.getElementById('comboBadge').classList.remove('show');
   currentQ = generateQuestion(session.level);
+  session.qStartTime = Date.now();
   const opts = generateOptions(currentQ);
   document.getElementById('qtext').textContent = currentQ.text;
   document.getElementById('qhint').textContent = '';
@@ -650,13 +735,23 @@ function nextQuestion(){
 }
 
 const RIGHT_MSGS = ['Isso aí! 🎉','Mandou bem!','Voando alto! 🚀','Você é fera!','Incrível!'];
-const WRONG_MSGS = ['Quase! Tente de novo 💪','Você está aprendendo!','Foi por pouco!','Continue tentando!'];
+const RIGHT_MSGS_FAST = ['Você está ficando rápido! ⚡','Nem precisou pensar! 🧠','Isso já é de cor! 🔥'];
+const WRONG_MSGS = ['Essa quase! Vamos guardar na memória 💭','Você está aprendendo!','Foi por pouco!','Continue tentando!'];
 
 function answerSelected(val, btn){
   document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
   const correct = val === currentQ.answer;
   const key = currentQ.key;
-  if(!state.factStats[key]) state.factStats[key] = {correct:0, wrong:0};
+  getFactStat(key); // garante estrutura (migração de saves antigos)
+  const answerMs = Date.now() - (session.qStartTime || Date.now());
+  state.qCounter++;
+
+  // estatística diária (usada na "corrida contra você mesmo")
+  const t = todayStr();
+  if(!state.dailyStats[t]) state.dailyStats[t] = {correct:0, wrong:0, timeMs:0, count:0};
+  const dstat = state.dailyStats[t];
+  dstat.count++; dstat.timeMs += answerMs;
+  if(correct) dstat.correct++; else dstat.wrong++;
 
   if(correct){
     btn.classList.add('correct');
@@ -672,8 +767,10 @@ function answerSelected(val, btn){
     sfxCorrect();
     spawnConfetti();
     popXp(btn, '+'+xpGain+' XP  +'+coinsGain+'🪙');
-    document.getElementById('feedbackMsg').textContent = RIGHT_MSGS[Math.floor(Math.random()*RIGHT_MSGS.length)];
+    const fastPool = answerMs < 2500 ? RIGHT_MSGS_FAST : RIGHT_MSGS;
+    document.getElementById('feedbackMsg').textContent = fastPool[Math.floor(Math.random()*fastPool.length)];
     bounceMascot('happy');
+    scheduleAfterAnswer(key, true);
     if(session.combo>1){
       const cb = document.getElementById('comboBadge');
       cb.textContent = 'Combo x'+session.combo+' 🔥';
@@ -700,6 +797,7 @@ function answerSelected(val, btn){
     sfxWrong();
     document.getElementById('feedbackMsg').textContent = WRONG_MSGS[Math.floor(Math.random()*WRONG_MSGS.length)];
     bounceMascot('sad');
+    scheduleAfterAnswer(key, false);
     if(session.mode!=='treino' && session.mode!=='tempo'){
       state.hearts = Math.max(0, state.hearts-1);
       if(!state.lastHeartLostAt) state.lastHeartLostAt = Date.now();
@@ -831,26 +929,70 @@ function renderStats(){
   document.getElementById('statDays').textContent = currentStreak();
   document.getElementById('statTotal').textContent = total;
 
+  // ---- domínio por tabuada, usando a caixa da repetição espaçada (0-6) como medida real de memorização ----
   const perTable = {};
   for(const k in state.factStats){
     const [a,b] = k.split('x').map(Number);
+    const s = state.factStats[k];
     [a,b].forEach(t=>{
-      if(!perTable[t]) perTable[t]={correct:0, wrong:0};
-      perTable[t].correct += state.factStats[k].correct;
-      perTable[t].wrong += state.factStats[k].wrong;
+      if(!perTable[t]) perTable[t]={boxSum:0, count:0, wrong:0, tot:0};
+      perTable[t].boxSum += (s.box||0);
+      perTable[t].count += 1;
+      perTable[t].wrong += s.wrong;
+      perTable[t].tot += s.correct+s.wrong;
     });
   }
-  const strong = [], weak = [];
-  Object.keys(perTable).sort((a,b)=>a-b).forEach(t=>{
-    const s = perTable[t]; const tot = s.correct+s.wrong;
-    if(tot < 3) return;
-    const rate = s.correct/tot;
-    if(rate >= 0.85) strong.push(t); else if(rate < 0.6) weak.push(t);
-  });
-  const strongEl = document.getElementById('strongChips');
+  const masteryEl = document.getElementById('masteryList');
   const weakEl = document.getElementById('weakChips');
-  strongEl.innerHTML = strong.length ? strong.map(t=>`<span class="table-chip strong">✅ Tabuada do ${t}</span>`).join('') : '<span class="table-chip">Continue jogando para dominar tabuadas!</span>';
-  weakEl.innerHTML = weak.length ? weak.map(t=>`<span class="table-chip weak">🔁 Tabuada do ${t}</span>`).join('') : '<span class="table-chip">Nenhuma dificuldade encontrada 🎉</span>';
+  const tables = Object.keys(perTable).map(Number).sort((a,b)=>a-b);
+  if(!tables.length){
+    masteryEl.innerHTML = '<span class="table-chip">Jogue uma fase pra ver seu domínio de cada tabuada aqui!</span>';
+    weakEl.innerHTML = '<span class="table-chip">Nenhuma dificuldade encontrada 🎉</span>';
+  } else {
+    masteryEl.innerHTML = tables.map(t=>{
+      const s = perTable[t];
+      const pct = masteryPercent(s.boxSum/s.count);
+      return `<div class="mastery-row">
+        <div class="mastery-top"><span>Tabuada do ${t}</span><span>${pct}%</span></div>
+        <div class="mastery-track"><div class="mastery-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+    const weak = tables.filter(t=>{
+      const s = perTable[t];
+      return s.tot>=3 && (s.wrong/s.tot) >= 0.4;
+    });
+    weakEl.innerHTML = weak.length ? weak.map(t=>`<span class="table-chip weak">🔁 Tabuada do ${t}</span>`).join('') : '<span class="table-chip">Nenhuma dificuldade encontrada 🎉</span>';
+  }
+
+  // ---- corrida contra você mesmo: hoje vs. sessão anterior ----
+  const raceEl = document.getElementById('raceCard');
+  const t = todayStr();
+  const today = state.dailyStats[t] || {correct:0, wrong:0, timeMs:0, count:0};
+  const otherDays = Object.keys(state.dailyStats).filter(d=>d!==t).sort();
+  const prevKey = otherDays[otherDays.length-1];
+  const prev = prevKey ? state.dailyStats[prevKey] : null;
+
+  const todayAvg = today.count ? today.timeMs/today.count/1000 : null;
+  const prevAvg = prev && prev.count ? prev.timeMs/prev.count/1000 : null;
+
+  if(!today.count && !prev){
+    raceEl.innerHTML = '<div class="race-msg">Jogue hoje para começar a se comparar com você mesmo(a)!</div>';
+  } else {
+    let msg = 'Continue jogando pra ver sua evolução!';
+    if(todayAvg && prevAvg){
+      if(todayAvg < prevAvg - 0.3) msg = `Você ficou mais rápido(a) que da última vez! ⚡`;
+      else if(todayAvg > prevAvg + 0.3) msg = `Da última vez você foi mais rápido — bora superar isso hoje!`;
+      else msg = 'Seu ritmo está estável — consistência é ótimo!';
+    }
+    raceEl.innerHTML = `
+      <div class="race-title">Hoje vs. sua última sessão</div>
+      <div class="race-row">
+        <div class="race-col"><div class="num">${today.correct}</div><div class="lbl">Acertos hoje</div></div>
+        <div class="race-col"><div class="num">${prev ? prev.correct : '—'}</div><div class="lbl">Acertos antes</div></div>
+        <div class="race-col"><div class="num">${todayAvg?todayAvg.toFixed(1)+'s':'—'}</div><div class="lbl">Tempo médio hoje</div></div>
+      </div>
+      <div class="race-msg">${msg}</div>`;
+  }
 }
 
 /* ---------------- Inicialização ---------------- */
