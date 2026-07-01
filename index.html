@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Tabuada Hero — A Aventura de Numi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky-top:#FF9F6B;
+  --sky-mid:#B76BB8;
+  --sky-bottom:#4C3E8C;
+  --path:#3DBE8B;
+  --path-dark:#2E9C71;
+  --gold:#FFC93C;
+  --gold-dark:#E8A81C;
+  --card:#FFF7ED;
+  --ink:#2E2350;
+  --ink-soft:#5B4C86;
+  --coral:#FF6B4A;
+  --coral-dark:#E5543A;
+  --teal:#2EC4B6;
+  --teal-dark:#1FA79A;
+  --soft-red:#FF8577;
+  --soft-red-dark:#E56A5D;
+  --white:#FFFFFF;
+  --lock:#9C8FC2;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:'Nunito',sans-serif;
+  background:linear-gradient(180deg,var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-bottom) 100%);
+  min-height:100vh;
+  overflow-x:hidden;
+  color:var(--ink);
+  position:relative;
+}
+h1,h2,h3,.display{font-family:'Baloo 2',sans-serif;}
+button{font-family:inherit; cursor:pointer; border:none;}
+#app{
+  max-width:520px;
+  margin:0 auto;
+  min-height:100vh;
+  position:relative;
+  padding-bottom:24px;
+}
+.screen{display:none; animation:fadeIn .35s ease;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- Top bar (stats) ---------- */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px 6px;
+  position:relative; z-index:5;
+}
+.pill{
+  display:flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,.92);
+  border-radius:999px;
+  padding:6px 12px 6px 6px;
+  font-weight:800;
+  font-size:15px;
+  color:var(--ink);
+  box-shadow:0 3px 0 rgba(0,0,0,.08);
+}
+.pill .icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.hearts{display:flex; gap:3px; background:rgba(255,255,255,.92); border-radius:999px; padding:6px 10px; box-shadow:0 3px 0 rgba(0,0,0,.08);}
+.heart{font-size:16px;}
+.heart.empty{opacity:.25;}
+.icon-btn{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.92);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px; box-shadow:0 3px 0 rgba(0,0,0,.08);
+}
+
+/* ---------- Home / Adventure path ---------- */
+.hero-title{
+  text-align:center; color:var(--white); margin:2px 0 0;
+  font-size:30px; font-weight:800; letter-spacing:.5px;
+  text-shadow:0 3px 0 rgba(0,0,0,.15);
+}
+.hero-sub{text-align:center; color:rgba(255,255,255,.9); font-weight:700; margin:2px 0 14px; font-size:14px;}
+
+.mascot-wrap{display:flex; justify-content:center; margin:6px 0 10px;}
+.mascot{width:120px; height:120px; animation:float 3.2s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
+.mascot.happy{animation:bounceHappy .6s ease;}
+@keyframes bounceHappy{0%{transform:scale(1);}30%{transform:scale(1.15) rotate(-4deg);}60%{transform:scale(.95) rotate(4deg);}100%{transform:scale(1);}}
+.mascot.sad{animation:wobbleSad .6s ease;}
+@keyframes wobbleSad{0%,100%{transform:rotate(0);}25%{transform:rotate(-6deg) translateX(-4px);}75%{transform:rotate(6deg) translateX(4px);}}
+
+.speech{
+  background:var(--white); border-radius:16px; padding:10px 16px; margin:0 auto 16px;
+  max-width:280px; text-align:center; font-weight:800; color:var(--ink);
+  box-shadow:0 4px 0 rgba(0,0,0,.1); position:relative;
+}
+.speech:after{
+  content:""; position:absolute; top:-8px; left:50%; transform:translateX(-50%);
+  border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:8px solid var(--white);
+}
+
+.path-wrap{padding:0 20px; position:relative;}
+.path-node{
+  display:flex; align-items:center; gap:14px; margin:0 0 6px;
+  position:relative; padding-left:4px;
+}
+.path-line{position:absolute; left:35px; top:56px; width:4px; height:38px; background:rgba(255,255,255,.5); border-radius:4px;}
+.node-btn{
+  width:64px; height:64px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Baloo 2'; font-weight:700; font-size:22px; color:var(--white);
+  background:linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%);
+  box-shadow:0 5px 0 #B4790F, inset 0 2px 4px rgba(255,255,255,.4);
+  position:relative; transition:transform .15s;
+}
+.node-btn:active{transform:translateY(3px); box-shadow:0 2px 0 #B4790F;}
+.node-btn.current{background:linear-gradient(180deg, var(--coral) 0%, var(--coral-dark) 100%); box-shadow:0 5px 0 #A83B27, inset 0 2px 4px rgba(255,255,255,.4);}
+.node-btn.locked{background:linear-gradient(180deg,#B7ABDD 0%, var(--lock) 100%); box-shadow:0 5px 0 #6C5F97; color:rgba(255,255,255,.7); cursor:default;}
+.node-btn.done{background:linear-gradient(180deg, var(--teal) 0%, var(--teal-dark) 100%); box-shadow:0 5px 0 #17847A;}
+.node-btn .badge{position:absolute; top:-6px; right:-6px; font-size:20px;}
+.node-info{flex:1;}
+.node-title{font-family:'Baloo 2'; font-weight:700; font-size:17px; color:var(--white); text-shadow:0 2px 0 rgba(0,0,0,.15);}
+.node-desc{font-size:12.5px; color:rgba(255,255,255,.85); font-weight:700;}
+
+.home-actions{display:flex; gap:10px; padding:20px 20px 4px;}
+.btn{
+  border-radius:16px; padding:14px 18px; font-weight:800; font-size:15px;
+  display:flex; align-items:center; justify-content:center; gap:8px; flex:1;
+  transition:transform .12s;
+}
+.btn:active{transform:translateY(3px);}
+.btn-teal{background:linear-gradient(180deg,var(--teal) 0%, var(--teal-dark) 100%); color:var(--white); box-shadow:0 4px 0 #17847A;}
+.btn-coral{background:linear-gradient(180deg,var(--coral) 0%, var(--coral-dark) 100%); color:var(--white); box-shadow:0 4px 0 #A83B27;}
+.btn-gold{background:linear-gradient(180deg,var(--gold) 0%, var(--gold-dark) 100%); color:var(--ink); box-shadow:0 4px 0 #B4790F;}
+.btn-outline{background:rgba(255,255,255,.9); color:var(--ink); box-shadow:0 4px 0 rgba(0,0,0,.15);}
+.btn:disabled{opacity:.5;}
+
+/* ---------- Game screen ---------- */
+.game-header{display:flex; align-items:center; gap:10px; padding:10px 16px;}
+.back-btn{width:38px;height:38px;border-radius:50%; background:rgba(255,255,255,.92); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 3px 0 rgba(0,0,0,.08); flex-shrink:0;}
+.progress-track{flex:1; height:14px; background:rgba(255,255,255,.4); border-radius:999px; overflow:hidden;}
+.progress-fill{height:100%; background:linear-gradient(90deg,var(--gold),#FFE08A); border-radius:999px; transition:width .4s ease;}
+
+.combo-badge{
+  position:absolute; top:96px; right:18px; z-index:6;
+  background:linear-gradient(180deg,var(--coral),var(--coral-dark)); color:#fff;
+  font-family:'Baloo 2'; font-weight:700; padding:6px 14px; border-radius:999px;
+  box-shadow:0 4px 0 #A83B27; opacity:0; transform:scale(.6);
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);
+}
+.combo-badge.show{opacity:1; transform:scale(1);}
+
+.qcard-wrap{padding:26px 18px 4px; display:flex; justify-content:center;}
+.qcard{
+  background:var(--card); border-radius:26px; padding:38px 24px;
+  width:100%; max-width:340px; text-align:center;
+  box-shadow:0 8px 0 rgba(0,0,0,.1);
+  position:relative;
+}
+.qcard.shake{animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-10px);}40%{transform:translateX(10px);}60%{transform:translateX(-6px);}80%{transform:translateX(6px);}}
+.qtext{font-family:'Baloo 2'; font-size:46px; font-weight:700; color:var(--ink); letter-spacing:1px;}
+.qhint{font-size:13px; color:var(--ink-soft); font-weight:700; margin-top:6px;}
+
+.answers{display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:20px 18px 8px; max-width:376px; margin:0 auto;}
+.answers.two{grid-template-columns:1fr 1fr;}
+.answers.three{grid-template-columns:1fr 1fr 1fr;}
+.ans-btn{
+  background:var(--white); border-radius:18px; padding:18px 10px;
+  font-family:'Baloo 2'; font-weight:700; font-size:24px; color:var(--ink);
+  box-shadow:0 5px 0 rgba(0,0,0,.12); transition:transform .12s, background .2s, box-shadow .2s;
+}
+.ans-btn:active{transform:translateY(3px);}
+.ans-btn.correct{background:linear-gradient(180deg,#7CE0A8,#4CC97D); color:#fff; box-shadow:0 5px 0 #2E9C58;}
+.ans-btn.wrong{background:linear-gradient(180deg,var(--soft-red),var(--soft-red-dark)); color:#fff; box-shadow:0 5px 0 #C24C40;}
+.ans-btn:disabled{pointer-events:none;}
+
+.feedback-msg{
+  text-align:center; font-family:'Baloo 2'; font-weight:700; font-size:18px;
+  min-height:26px; margin-top:10px; color:var(--white); text-shadow:0 2px 0 rgba(0,0,0,.15);
+}
+
+.popup-xp{
+  position:fixed; font-family:'Baloo 2'; font-weight:700; font-size:18px; color:var(--gold);
+  text-shadow:0 2px 0 rgba(0,0,0,.2); pointer-events:none; z-index:50;
+  animation:popUp 1s ease forwards;
+}
+@keyframes popUp{0%{opacity:0; transform:translateY(0) scale(.6);}20%{opacity:1; transform:translateY(-10px) scale(1.1);}100%{opacity:0; transform:translateY(-70px) scale(1);}}
+
+.confetti{position:fixed; width:8px; height:14px; z-index:60; pointer-events:none; border-radius:2px;}
+
+/* ---------- Overlay screens (level complete / no hearts) ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(46,35,80,.55); z-index:80;
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.overlay.show{display:flex;}
+.overlay-card{
+  background:var(--card); border-radius:28px; padding:32px 26px; max-width:340px; width:100%;
+  text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.3);
+  animation:popCard .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popCard{from{transform:scale(.7); opacity:0;} to{transform:scale(1); opacity:1;}}
+.medal{font-size:70px; margin-bottom:6px; display:block;}
+.overlay-title{font-family:'Baloo 2'; font-size:24px; font-weight:700; color:var(--ink); margin:4px 0;}
+.overlay-sub{color:var(--ink-soft); font-weight:700; font-size:14px; margin-bottom:16px;}
+.reward-row{display:flex; justify-content:center; gap:18px; margin-bottom:18px;}
+.reward-item{display:flex; flex-direction:column; align-items:center; font-weight:800; font-size:15px; color:var(--ink);}
+.reward-item .ic{font-size:26px;}
+
+/* ---------- Stats screen ---------- */
+.stats-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:14px 18px;}
+.stat-card{background:var(--card); border-radius:18px; padding:16px; text-align:center; box-shadow:0 4px 0 rgba(0,0,0,.08);}
+.stat-num{font-family:'Baloo 2'; font-size:26px; font-weight:700; color:var(--coral);}
+.stat-label{font-size:12px; font-weight:800; color:var(--ink-soft); margin-top:2px;}
+.section-title{font-family:'Baloo 2'; font-weight:700; font-size:18px; color:var(--white); padding:14px 20px 6px; text-shadow:0 2px 0 rgba(0,0,0,.15);}
+.table-chip-row{display:flex; flex-wrap:wrap; gap:8px; padding:0 18px 10px;}
+.table-chip{background:var(--white); border-radius:12px; padding:8px 12px; font-weight:800; font-size:13px; display:flex; align-items:center; gap:6px;}
+.table-chip.weak{background:#FFE3DD; color:var(--coral-dark);}
+.table-chip.strong{background:#DFF7EC; color:var(--teal-dark);}
+
+.header-row{display:flex; align-items:center; gap:10px; padding:14px 16px 4px;}
+.header-row h2{margin:0; font-size:20px; color:var(--white); text-shadow:0 2px 0 rgba(0,0,0,.15);}
+
+.timer-bar{height:8px; background:rgba(255,255,255,.4); border-radius:999px; margin:0 18px 6px; overflow:hidden; max-width:340px; }
+.timer-fill{height:100%; background:linear-gradient(90deg,var(--gold),var(--coral)); width:100%; transition:width .1s linear;}
+
+footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; padding:18px 10px 4px; font-weight:700;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TOP BAR ============ -->
+  <div class="topbar" id="topbar">
+    <div class="pill"><span class="icon">🪙</span><span id="coinCount">0</span></div>
+    <div class="hearts" id="heartsBar"></div>
+    <button class="icon-btn" id="statsBtn" title="Estatísticas">📊</button>
+  </div>
+
+  <!-- ============ HOME SCREEN ============ -->
+  <section class="screen active" id="screen-home">
+    <h1 class="hero-title">Tabuada Hero</h1>
+    <div class="hero-sub">A aventura de Numi no Reino dos Números</div>
+    <div class="mascot-wrap"><div class="mascot" id="mascotHome">MASCOT</div></div>
+    <div class="speech" id="homeSpeech">Vamos treinar a tabuada hoje?</div>
+
+    <div class="path-wrap" id="pathWrap"></div>
+
+    <div class="home-actions">
+      <button class="btn btn-teal" id="btnTreino">🎯 Modo Treino</button>
+      <button class="btn btn-gold" id="btnTempo">⏱️ Contra o Tempo</button>
+    </div>
+    <footer class="credits">Tabuada Hero — protótipo v0.1 · roda 100% no navegador</footer>
+  </section>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <section class="screen" id="screen-game">
+    <div class="game-header">
+      <button class="back-btn" id="btnBack">←</button>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+    <div class="timer-bar" id="timerBar" style="display:none;"><div class="timer-fill" id="timerFill"></div></div>
+    <div class="combo-badge" id="comboBadge">Combo x2 🔥</div>
+
+    <div class="qcard-wrap">
+      <div class="qcard" id="qcard">
+        <div class="qtext" id="qtext">2 × 3 = ?</div>
+        <div class="qhint" id="qhint"></div>
+      </div>
+    </div>
+
+    <div class="answers two" id="answersWrap"></div>
+    <div class="feedback-msg" id="feedbackMsg"></div>
+  </section>
+
+  <!-- ============ STATS SCREEN ============ -->
+  <section class="screen" id="screen-stats">
+    <div class="header-row"><button class="back-btn" id="statsBack">←</button><h2>Meu Progresso</h2></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num" id="statAcc">0%</div><div class="stat-label">Acertos</div></div>
+      <div class="stat-card"><div class="stat-num" id="statStreak">0</div><div class="stat-label">Melhor sequência</div></div>
+      <div class="stat-card"><div class="stat-num" id="statDays">0</div><div class="stat-label">Dias seguidos</div></div>
+      <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Contas resolvidas</div></div>
+    </div>
+    <div class="section-title">Tabuadas dominadas 🌟</div>
+    <div class="table-chip-row" id="strongChips"></div>
+    <div class="section-title">Precisam de reforço 💪</div>
+    <div class="table-chip-row" id="weakChips"></div>
+  </section>
+
+</div>
+
+<!-- ============ OVERLAYS ============ -->
+<div class="overlay" id="overlayLevelUp">
+  <div class="overlay-card">
+    <span class="medal">🏅</span>
+    <div class="overlay-title" id="levelUpTitle">Fase concluída!</div>
+    <div class="overlay-sub" id="levelUpSub">Numi está orgulhoso de você!</div>
+    <div class="reward-row">
+      <div class="reward-item"><span class="ic">🪙</span><span id="rewardCoins">+0</span></div>
+      <div class="reward-item"><span class="ic">✨</span><span id="rewardXp">+0</span></div>
+      <div class="reward-item"><span class="ic">❤️</span><span id="rewardHearts">Cheio</span></div>
+    </div>
+    <button class="btn btn-coral" id="btnContinue" style="width:100%;">Continuar aventura</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlayNoHearts">
+  <div class="overlay-card">
+    <span class="medal">💔</span>
+    <div class="overlay-title">Sem corações!</div>
+    <div class="overlay-sub" id="heartsRegenMsg">Numi está descansando. Volte em breve ou veja uma dica rápida!</div>
+    <button class="btn btn-gold" id="btnWatchTip" style="width:100%; margin-bottom:10px;">🎬 Ver dica e ganhar 1 coração</button>
+    <button class="btn btn-outline" id="btnBackHome2" style="width:100%;">Voltar para o mapa</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlayTip">
+  <div class="overlay-card">
+    <span class="medal">💡</span>
+    <div class="overlay-title">Dica de Numi</div>
+    <div class="overlay-sub" id="tipText">Multiplicar por 2 é o mesmo que somar o número com ele mesmo!</div>
+    <button class="btn btn-teal" id="btnCloseTip" style="width:100%;">Obrigado, Numi!</button>
+  </div>
+</div>
+
+<script>
+/* ==================================================================
+   TABUADA HERO — protótipo jogável (localStorage, sem dependências)
+   ================================================================== */
+
+/* ---------------- Mascote (SVG do dragãozinho Numi) ---------------- */
+const MASCOT_SVG = `
+<svg viewBox="0 0 200 200" width="100%" height="100%">
+  <ellipse cx="100" cy="175" rx="55" ry="10" fill="#000" opacity="0.12"/>
+  <path d="M60 90 Q30 70 45 45 Q55 60 68 65 Z" fill="#7A5FD1"/>
+  <path d="M140 90 Q170 70 155 45 Q145 60 132 65 Z" fill="#7A5FD1"/>
+  <ellipse cx="100" cy="115" rx="52" ry="48" fill="#9B7FEF"/>
+  <ellipse cx="100" cy="150" rx="38" ry="30" fill="#B7A2F5"/>
+  <circle cx="80" cy="105" r="9" fill="#2E2350"/>
+  <circle cx="120" cy="105" r="9" fill="#2E2350"/>
+  <circle cx="83" cy="102" r="3" fill="#fff"/>
+  <circle cx="123" cy="102" r="3" fill="#fff"/>
+  <ellipse cx="70" cy="125" rx="8" ry="5" fill="#FF9FB0" opacity="0.7"/>
+  <ellipse cx="130" cy="125" rx="8" ry="5" fill="#FF9FB0" opacity="0.7"/>
+  <path d="M85 128 Q100 140 115 128" stroke="#2E2350" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M100 63 L92 45 L108 45 Z" fill="#FFC93C"/>
+  <path d="M62 172 Q100 195 138 172 L128 155 Q100 168 72 155 Z" fill="#5FE0A8"/>
+</svg>`;
+
+document.getElementById('mascotHome').innerHTML = MASCOT_SVG;
+
+/* ---------------- Estado persistido ---------------- */
+const SAVE_KEY = 'tabuadaHeroSave_v1';
+
+function defaultState(){
+  return {
+    coins:0, xp:0, hearts:5, maxHearts:5,
+    lastHeartLostAt:null,
+    unlockedLevel:1,
+    levelProgress:{},          // {1:{correct:0}}
+    factStats:{},              // {"2x3":{correct:0,wrong:0}}
+    bestStreak:0,
+    totalCorrect:0,
+    totalWrong:0,
+    daysPlayed:[],             // array of 'YYYY-MM-DD'
+    achievements:[]
+  };
+}
+let state = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw) return Object.assign(defaultState(), JSON.parse(raw));
+  }catch(e){}
+  return defaultState();
+}
+function save(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function registerDay(){
+  const t = todayStr();
+  if(!state.daysPlayed.includes(t)){ state.daysPlayed.push(t); save(); }
+}
+function currentStreak(){
+  const set = new Set(state.daysPlayed);
+  let streak=0, d=new Date();
+  while(true){
+    const key = d.toISOString().slice(0,10);
+    if(set.has(key)){ streak++; d.setDate(d.getDate()-1); } else break;
+  }
+  return streak;
+}
+
+/* ---------------- Regeneração de corações (1 a cada 3 min) ---------------- */
+const HEART_REGEN_MS = 3*60*1000;
+function regenHearts(){
+  if(state.hearts >= state.maxHearts) return;
+  if(!state.lastHeartLostAt) return;
+  const elapsed = Date.now() - state.lastHeartLostAt;
+  const gained = Math.floor(elapsed / HEART_REGEN_MS);
+  if(gained > 0){
+    state.hearts = Math.min(state.maxHearts, state.hearts + gained);
+    state.lastHeartLostAt = state.hearts >= state.maxHearts ? null : Date.now() - (elapsed % HEART_REGEN_MS);
+    save();
+  }
+}
+setInterval(regenHearts, 5000);
+
+/* ---------------- Definição das fases ---------------- */
+// Fases 1-3 seguem a especificação exata; 4+ generalizam a progressão até a tabuada 10,
+// depois multiplicação aleatória e por fim divisão.
+const LEVELS = [
+  {id:1, title:'Vale do 2 e 3',  tables:[2,3],             options:2, need:15, op:'mul'},
+  {id:2, title:'Colina do 4',    tables:[2,3,4],           options:3, need:15, op:'mul'},
+  {id:3, title:'Floresta do 5',  tables:[2,3,4,5],         options:4, need:15, op:'mul'},
+  {id:4, title:'Caverna do 6',   tables:[2,3,4,5,6],       options:4, need:18, op:'mul'},
+  {id:5, title:'Torre do 7',     tables:[2,3,4,5,6,7],     options:4, need:18, op:'mul'},
+  {id:6, title:'Praia do 8',     tables:[2,3,4,5,6,7,8],   options:4, need:18, op:'mul'},
+  {id:7, title:'Montanha do 9',  tables:[2,3,4,5,6,7,8,9], options:4, need:20, op:'mul'},
+  {id:8, title:'Castelo do 10',  tables:[1,2,3,4,5,6,7,8,9,10], options:4, need:20, op:'mul'},
+  {id:9, title:'Portal Aleatório', tables:[1,2,3,4,5,6,7,8,9,10,11,12], options:4, need:20, op:'mul'},
+  {id:10,title:'Templo da Divisão', tables:[2,3,4,5,6,7,8,9,10], options:4, need:20, op:'div'},
+];
+
+function levelById(id){ return LEVELS.find(l=>l.id===id); }
+function getProgress(id){
+  if(!state.levelProgress[id]) state.levelProgress[id] = {correct:0};
+  return state.levelProgress[id];
+}
+
+/* ---------------- Geração de perguntas ---------------- */
+function factKey(a,b){ return a+'x'+b; }
+function weakestFacts(tables){
+  // retorna fatos com mais erros relativos, restritos às tabelas da fase
+  const list = [];
+  for(const k in state.factStats){
+    const [a,b] = k.split('x').map(Number);
+    if(tables.includes(a) || tables.includes(b)){
+      const s = state.factStats[k];
+      const total = s.correct + s.wrong;
+      if(total>=2 && s.wrong > 0) list.push({a,b, score: s.wrong/total});
+    }
+  }
+  list.sort((x,y)=>y.score-x.score);
+  return list.slice(0,8);
+}
+
+function generateQuestion(level){
+  let a,b;
+  const useWeak = Math.random() < 0.35;
+  if(useWeak){
+    const weak = weakestFacts(level.tables);
+    if(weak.length){ const pick = weak[Math.floor(Math.random()*weak.length)]; a=pick.a; b=pick.b; }
+  }
+  if(a===undefined){
+    a = level.tables[Math.floor(Math.random()*level.tables.length)];
+    b = Math.floor(Math.random()* (level.id>=9?12:10)) + 1;
+  }
+  if(level.op === 'div'){
+    // gera divisão exata a partir de uma multiplicação da tabuada
+    const divisor = a;
+    const quotient = b;
+    const dividend = divisor*quotient;
+    return {a:dividend, b:divisor, answer:quotient, text:`${dividend} ÷ ${divisor} = ?`, key:factKey(divisor,quotient), options:level.options};
+  }
+  const answer = a*b;
+  return {a,b, answer, text:`${a} × ${b} = ?`, key:factKey(a,b), options:level.options};
+}
+
+function generateOptions(q){
+  const correct = q.answer;
+  const opts = new Set([correct]);
+  const deltas = [1,2,3,-1,-2,-3, q.a||1, -(q.a||1), q.b||1, -(q.b||1)];
+  let tries=0;
+  while(opts.size < q.options && tries < 40){
+    tries++;
+    const d = deltas[Math.floor(Math.random()*deltas.length)] * (Math.random()<0.5?1:1);
+    let cand = correct + d;
+    if(cand <= 0) cand = correct + Math.abs(d) + 1;
+    opts.add(cand);
+  }
+  while(opts.size < q.options){ opts.add(correct + opts.size*2 + 1); }
+  const arr = Array.from(opts);
+  // shuffle
+  for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+
+/* ---------------- Áudio simples (Web Audio, sem arquivos externos) ---------------- */
+let audioCtx = null;
+let soundOn = true;
+function beep(freq, dur, type='sine', vol=0.15){
+  if(!soundOn) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.value = vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.stop(audioCtx.currentTime + dur);
+  }catch(e){}
+}
+function sfxCorrect(){ beep(660,.12,'triangle'); setTimeout(()=>beep(880,.15,'triangle'),90); }
+function sfxWrong(){ beep(180,.25,'sawtooth',0.08); }
+function sfxLevelUp(){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.2,'triangle'),i*110)); }
+
+/* ---------------- Navegação de telas ---------------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ---------------- Render: topo (moedas / corações) ---------------- */
+function renderTop(){
+  document.getElementById('coinCount').textContent = state.coins;
+  const hb = document.getElementById('heartsBar');
+  hb.innerHTML = '';
+  for(let i=0;i<state.maxHearts;i++){
+    const s = document.createElement('span');
+    s.className = 'heart' + (i < state.hearts ? '' : ' empty');
+    s.textContent = '❤️';
+    hb.appendChild(s);
+  }
+}
+
+/* ---------------- Render: home / trilha de aventura ---------------- */
+const SPEECHES = [
+  'Vamos treinar a tabuada hoje?',
+  'Cada acerto te deixa mais forte!',
+  'Eu acredito em você, herói(ína)!',
+  'Bora conquistar mais uma fase?'
+];
+function renderHome(){
+  document.getElementById('homeSpeech').textContent = SPEECHES[Math.floor(Math.random()*SPEECHES.length)];
+  const wrap = document.getElementById('pathWrap');
+  wrap.innerHTML = '';
+  LEVELS.forEach((lvl, idx)=>{
+    const node = document.createElement('div');
+    node.className = 'path-node';
+    const unlocked = lvl.id <= state.unlockedLevel;
+    const done = lvl.id < state.unlockedLevel;
+    const current = lvl.id === state.unlockedLevel;
+    let cls = 'node-btn';
+    if(!unlocked) cls += ' locked';
+    else if(done) cls += ' done';
+    else if(current) cls += ' current';
+    const prog = getProgress(lvl.id);
+    node.innerHTML = `
+      ${idx < LEVELS.length-1 ? '<div class="path-line"></div>' : ''}
+      <button class="${cls}" data-level="${lvl.id}">
+        ${done ? '<span class="badge">🏅</span>' : ''}
+        ${unlocked ? lvl.id : '🔒'}
+      </button>
+      <div class="node-info">
+        <div class="node-title">${lvl.title}</div>
+        <div class="node-desc">${unlocked ? (done ? 'Concluída' : prog.correct + ' / ' + lvl.need + ' acertos') : 'Bloqueada'}</div>
+      </div>`;
+    wrap.appendChild(node);
+  });
+  wrap.querySelectorAll('.node-btn:not(.locked)').forEach(btn=>{
+    btn.addEventListener('click', ()=> startLevel(Number(btn.dataset.level)));
+  });
+}
+
+/* ---------------- Estado do jogo (sessão atual) ---------------- */
+let session = null; // {level, mode, combo, correctStreak, timerId, timeLeft}
+
+function startLevel(levelId, mode='level'){
+  if(state.hearts <= 0 && mode!=='treino'){ openOverlay('overlayNoHearts'); return; }
+  const level = levelById(levelId);
+  session = { level, mode, combo:1, correctStreak:0, timeMode:false };
+  document.getElementById('answersWrap').className = 'answers ' + (level.options===2?'two':level.options===3?'three':'');
+  document.getElementById('timerBar').style.display = 'none';
+  updateProgressBar();
+  showScreen('screen-game');
+  nextQuestion();
+}
+
+function startTreino(){
+  session = { level: levelById(state.unlockedLevel<=LEVELS.length?state.unlockedLevel:LEVELS.length), mode:'treino', combo:1, correctStreak:0, timeMode:false };
+  document.getElementById('answersWrap').className = 'answers ' + (session.level.options===2?'two':session.level.options===3?'three':'');
+  document.getElementById('timerBar').style.display = 'none';
+  document.getElementById('progressFill').style.width = '100%';
+  showScreen('screen-game');
+  nextQuestion();
+}
+
+function startContraTempo(){
+  const lvl = levelById(Math.min(state.unlockedLevel, LEVELS.length));
+  session = { level:{...lvl, options:4}, mode:'tempo', combo:1, correctStreak:0, timeMode:true, timeLeft:60, score:0 };
+  document.getElementById('answersWrap').className = 'answers';
+  document.getElementById('timerBar').style.display = 'block';
+  document.getElementById('progressFill').style.width='100%';
+  showScreen('screen-game');
+  clearInterval(session.timerId);
+  session.timerId = setInterval(tickTimer, 100);
+  nextQuestion();
+}
+function tickTimer(){
+  session.timeLeft -= 0.1;
+  const pct = Math.max(0, session.timeLeft/60*100);
+  document.getElementById('timerFill').style.width = pct+'%';
+  if(session.timeLeft <= 0){
+    clearInterval(session.timerId);
+    document.getElementById('levelUpTitle').textContent = 'Tempo esgotado!';
+    document.getElementById('levelUpSub').textContent = `Você resolveu ${session.score} contas contra o tempo!`;
+    document.getElementById('rewardCoins').textContent = '+'+session.score*2;
+    document.getElementById('rewardXp').textContent = '+'+session.score*5;
+    document.getElementById('rewardHearts').textContent = state.hearts+'/'+state.maxHearts;
+    state.coins += session.score*2; state.xp += session.score*5; save(); renderTop();
+    sfxLevelUp();
+    openOverlay('overlayLevelUp');
+  }
+}
+
+function updateProgressBar(){
+  if(session.mode!=='level') return;
+  const prog = getProgress(session.level.id);
+  document.getElementById('progressFill').style.width = Math.min(100, prog.correct/session.level.need*100) + '%';
+}
+
+let currentQ = null;
+function nextQuestion(){
+  document.getElementById('feedbackMsg').textContent = '';
+  document.getElementById('comboBadge').classList.remove('show');
+  currentQ = generateQuestion(session.level);
+  const opts = generateOptions(currentQ);
+  document.getElementById('qtext').textContent = currentQ.text;
+  document.getElementById('qhint').textContent = '';
+  const wrap = document.getElementById('answersWrap');
+  wrap.innerHTML = '';
+  opts.forEach(val=>{
+    const b = document.createElement('button');
+    b.className = 'ans-btn';
+    b.textContent = val;
+    b.addEventListener('click', ()=> answerSelected(val, b));
+    wrap.appendChild(b);
+  });
+}
+
+const RIGHT_MSGS = ['Isso aí! 🎉','Mandou bem!','Voando alto! 🚀','Você é fera!','Incrível!'];
+const WRONG_MSGS = ['Quase! Tente de novo 💪','Você está aprendendo!','Foi por pouco!','Continue tentando!'];
+
+function answerSelected(val, btn){
+  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
+  const correct = val === currentQ.answer;
+  const key = currentQ.key;
+  if(!state.factStats[key]) state.factStats[key] = {correct:0, wrong:0};
+
+  if(correct){
+    btn.classList.add('correct');
+    state.factStats[key].correct++;
+    state.totalCorrect++;
+    session.correctStreak++;
+    state.bestStreak = Math.max(state.bestStreak, session.correctStreak);
+    session.combo = session.correctStreak>=10?5:session.correctStreak>=6?3:session.correctStreak>=3?2:1;
+    const coinsGain = 2*session.combo;
+    const xpGain = 10*session.combo;
+    state.coins += coinsGain; state.xp += xpGain;
+    if(session.mode==='tempo') session.score = (session.score||0)+1;
+    sfxCorrect();
+    spawnConfetti();
+    popXp(btn, '+'+xpGain+' XP  +'+coinsGain+'🪙');
+    document.getElementById('feedbackMsg').textContent = RIGHT_MSGS[Math.floor(Math.random()*RIGHT_MSGS.length)];
+    bounceMascot('happy');
+    if(session.combo>1){
+      const cb = document.getElementById('comboBadge');
+      cb.textContent = 'Combo x'+session.combo+' 🔥';
+      cb.classList.add('show');
+    }
+    if(session.mode==='level'){
+      const prog = getProgress(session.level.id);
+      prog.correct++;
+      updateProgressBar();
+      if(prog.correct >= session.level.need){
+        save();
+        setTimeout(()=>completeLevel(), 550);
+        return;
+      }
+    }
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.ans-btn').forEach(b=>{ if(Number(b.textContent)===currentQ.answer) b.classList.add('correct'); });
+    state.factStats[key].wrong++;
+    state.totalWrong++;
+    session.correctStreak = 0; session.combo = 1;
+    document.getElementById('qcard').classList.add('shake');
+    setTimeout(()=>document.getElementById('qcard').classList.remove('shake'), 400);
+    sfxWrong();
+    document.getElementById('feedbackMsg').textContent = WRONG_MSGS[Math.floor(Math.random()*WRONG_MSGS.length)];
+    bounceMascot('sad');
+    if(session.mode!=='treino' && session.mode!=='tempo'){
+      state.hearts = Math.max(0, state.hearts-1);
+      if(!state.lastHeartLostAt) state.lastHeartLostAt = Date.now();
+      renderTop();
+    }
+  }
+  save();
+  registerDay();
+  renderTop();
+
+  const delay = correct ? 750 : 1300;
+  setTimeout(()=>{
+    if(session.mode!=='level' && state.hearts<=0 && session.mode!=='treino' && session.mode!=='tempo'){
+      openOverlay('overlayNoHearts'); return;
+    }
+    if(!correct && session.mode!=='treino' && session.mode!=='tempo' && state.hearts<=0){
+      openOverlay('overlayNoHearts'); return;
+    }
+    nextQuestion();
+  }, delay);
+}
+
+function bounceMascot(kind){
+  const m = document.getElementById('mascotHome');
+  m.classList.remove('happy','sad');
+  void m.offsetWidth;
+  m.classList.add(kind);
+}
+
+function popXp(anchor, text){
+  const rect = anchor.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'popup-xp';
+  el.textContent = text;
+  el.style.left = (rect.left + rect.width/2 - 40) + 'px';
+  el.style.top = (rect.top - 10) + 'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1000);
+}
+
+function spawnConfetti(){
+  const colors = ['#FF6B4A','#FFC93C','#2EC4B6','#9B7FEF','#5FE0A8'];
+  for(let i=0;i<16;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = (40 + Math.random()*250) + 'px';
+    c.style.top = '160px';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.transform = `rotate(${Math.random()*360}deg)`;
+    document.body.appendChild(c);
+    const dx = (Math.random()-0.5)*220;
+    const dy = 220 + Math.random()*160;
+    const rot = Math.random()*720-360;
+    c.animate([
+      {transform:`translate(0,0) rotate(0deg)`, opacity:1},
+      {transform:`translate(${dx}px, ${dy}px) rotate(${rot}deg)`, opacity:0}
+    ], {duration: 900+Math.random()*400, easing:'cubic-bezier(.2,.8,.4,1)'});
+    setTimeout(()=>c.remove(), 1400);
+  }
+}
+
+function completeLevel(){
+  clearInterval(session?.timerId);
+  const lvl = session.level;
+  if(state.unlockedLevel === lvl.id){
+    state.unlockedLevel = Math.min(LEVELS.length, lvl.id+1);
+  }
+  state.hearts = state.maxHearts;
+  state.lastHeartLostAt = null;
+  save(); renderTop();
+  sfxLevelUp();
+  document.getElementById('levelUpTitle').textContent = lvl.title + ' concluída!';
+  document.getElementById('levelUpSub').textContent = 'Numi está muito orgulhoso de você!';
+  document.getElementById('rewardCoins').textContent = '+30';
+  document.getElementById('rewardXp').textContent = '+100';
+  document.getElementById('rewardHearts').textContent = 'Cheio ❤️';
+  state.coins += 30; state.xp += 100; save(); renderTop();
+  openOverlay('overlayLevelUp');
+}
+
+/* ---------------- Overlays ---------------- */
+function openOverlay(id){ document.getElementById(id).classList.add('show'); }
+function closeOverlay(id){ document.getElementById(id).classList.remove('show'); }
+
+document.getElementById('btnContinue').addEventListener('click', ()=>{
+  closeOverlay('overlayLevelUp');
+  showScreen('screen-home');
+  renderHome();
+});
+
+document.getElementById('btnWatchTip').addEventListener('click', ()=>{
+  closeOverlay('overlayNoHearts');
+  const tips = [
+    'Multiplicar por 2 é somar o número com ele mesmo: 4 × 2 = 4 + 4!',
+    'A tabuada do 9 tem um truque: os dedos das mãos podem te ajudar a contar!',
+    'Multiplicar por 10 é só colocar um zero no final do número!',
+    'A ordem não importa: 3 × 4 é igual a 4 × 3!'
+  ];
+  document.getElementById('tipText').textContent = tips[Math.floor(Math.random()*tips.length)];
+  openOverlay('overlayTip');
+});
+document.getElementById('btnCloseTip').addEventListener('click', ()=>{
+  closeOverlay('overlayTip');
+  state.hearts = Math.min(state.maxHearts, state.hearts+1);
+  if(state.hearts>=state.maxHearts) state.lastHeartLostAt=null;
+  save(); renderTop();
+  showScreen('screen-home'); renderHome();
+});
+document.getElementById('btnBackHome2').addEventListener('click', ()=>{
+  closeOverlay('overlayNoHearts');
+  showScreen('screen-home'); renderHome();
+});
+
+/* ---------------- Navegação geral ---------------- */
+document.getElementById('btnBack').addEventListener('click', ()=>{
+  clearInterval(session?.timerId);
+  showScreen('screen-home'); renderHome();
+});
+document.getElementById('btnTreino').addEventListener('click', startTreino);
+document.getElementById('btnTempo').addEventListener('click', startContraTempo);
+document.getElementById('statsBtn').addEventListener('click', ()=>{ renderStats(); showScreen('screen-stats'); });
+document.getElementById('statsBack').addEventListener('click', ()=>{ showScreen('screen-home'); renderHome(); });
+
+/* ---------------- Estatísticas ---------------- */
+function renderStats(){
+  const total = state.totalCorrect + state.totalWrong;
+  document.getElementById('statAcc').textContent = total ? Math.round(state.totalCorrect/total*100)+'%' : '—';
+  document.getElementById('statStreak').textContent = state.bestStreak;
+  document.getElementById('statDays').textContent = currentStreak();
+  document.getElementById('statTotal').textContent = total;
+
+  const perTable = {};
+  for(const k in state.factStats){
+    const [a,b] = k.split('x').map(Number);
+    [a,b].forEach(t=>{
+      if(!perTable[t]) perTable[t]={correct:0, wrong:0};
+      perTable[t].correct += state.factStats[k].correct;
+      perTable[t].wrong += state.factStats[k].wrong;
+    });
+  }
+  const strong = [], weak = [];
+  Object.keys(perTable).sort((a,b)=>a-b).forEach(t=>{
+    const s = perTable[t]; const tot = s.correct+s.wrong;
+    if(tot < 3) return;
+    const rate = s.correct/tot;
+    if(rate >= 0.85) strong.push(t); else if(rate < 0.6) weak.push(t);
+  });
+  const strongEl = document.getElementById('strongChips');
+  const weakEl = document.getElementById('weakChips');
+  strongEl.innerHTML = strong.length ? strong.map(t=>`<span class="table-chip strong">✅ Tabuada do ${t}</span>`).join('') : '<span class="table-chip">Continue jogando para dominar tabuadas!</span>';
+  weakEl.innerHTML = weak.length ? weak.map(t=>`<span class="table-chip weak">🔁 Tabuada do ${t}</span>`).join('') : '<span class="table-chip">Nenhuma dificuldade encontrada 🎉</span>';
+}
+
+/* ---------------- Inicialização ---------------- */
+function init(){
+  regenHearts();
+  registerDay();
+  renderTop();
+  renderHome();
+}
+init();
+</script>
+</body>
+</html>
