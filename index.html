@@ -105,6 +105,21 @@ button{font-family:inherit; cursor:pointer; border:none;}
   border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:8px solid var(--white);
 }
 
+.mission-card{
+  margin:0 20px 16px; background:rgba(255,255,255,.95); border-radius:18px; padding:14px 16px;
+  box-shadow:0 4px 0 rgba(0,0,0,.1);
+}
+.mission-title{font-family:'Baloo 2'; font-weight:700; font-size:15px; color:var(--ink); margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+.mission-row{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+.mission-row:last-child{margin-bottom:0;}
+.mission-check{font-size:18px; width:22px; flex-shrink:0; text-align:center;}
+.mission-body{flex:1;}
+.mission-desc{font-size:12.5px; font-weight:800; color:var(--ink); margin-bottom:3px;}
+.mission-track{height:8px; background:#EDE7FA; border-radius:999px; overflow:hidden;}
+.mission-fill{height:100%; background:linear-gradient(90deg,var(--coral),var(--gold)); border-radius:999px; transition:width .4s ease;}
+.mission-row.done .mission-desc{color:var(--teal-dark);}
+.mission-row.done .mission-fill{background:linear-gradient(90deg,var(--teal),#5FE0A8);}
+
 .path-wrap{padding:0 20px; position:relative;}
 .path-node{
   display:flex; align-items:center; gap:14px; margin:0 0 6px;
@@ -146,6 +161,8 @@ button{font-family:inherit; cursor:pointer; border:none;}
 .back-btn{width:38px;height:38px;border-radius:50%; background:rgba(255,255,255,.92); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 3px 0 rgba(0,0,0,.08); flex-shrink:0;}
 .progress-track{flex:1; height:14px; background:rgba(255,255,255,.4); border-radius:999px; overflow:hidden;}
 .progress-fill{height:100%; background:linear-gradient(90deg,var(--gold),#FFE08A); border-radius:999px; transition:width .4s ease;}
+.progress-fill.boss{background:linear-gradient(90deg,#FF4747,#FF8A47);}
+.boss-label{color:#FFD9D9; font-weight:800; font-size:11px; margin-bottom:3px; text-shadow:0 2px 0 rgba(0,0,0,.3);}
 
 .combo-badge{
   position:absolute; top:96px; right:18px; z-index:6;
@@ -239,6 +256,30 @@ button{font-family:inherit; cursor:pointer; border:none;}
 .race-col .lbl{font-size:11px; font-weight:800; color:var(--ink-soft);}
 .race-msg{margin-top:8px; font-weight:800; color:var(--teal-dark); font-size:13.5px;}
 
+.ach-toast{
+  position:fixed; top:-100px; left:50%; transform:translateX(-50%);
+  background:linear-gradient(180deg,#FFF7ED,#FFE8C8); border-radius:18px; padding:12px 20px;
+  display:flex; align-items:center; gap:12px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+  z-index:200; transition:top .5s cubic-bezier(.34,1.56,.64,1); max-width:300px;
+}
+.ach-toast.show{top:16px;}
+.ach-toast-emoji{font-size:34px;}
+.ach-toast-label{font-size:11px; font-weight:800; color:var(--ink-soft); text-transform:uppercase;}
+.ach-toast-title{font-family:'Baloo 2'; font-weight:700; font-size:16px; color:var(--ink);}
+
+.cards-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:6px 18px 20px;}
+.card-tile{
+  background:var(--card); border-radius:20px; padding:18px 10px; text-align:center;
+  box-shadow:0 5px 0 rgba(0,0,0,.1); position:relative;
+}
+.card-tile .card-emoji{font-size:42px; display:block; margin-bottom:6px;}
+.card-tile .card-name{font-family:'Baloo 2'; font-weight:700; font-size:14px; color:var(--ink);}
+.card-tile .card-world{font-size:11px; font-weight:800; color:var(--ink-soft); margin-top:2px;}
+.card-tile.locked{background:#E4DFF2;}
+.card-tile.locked .card-emoji{filter:grayscale(1) brightness(1.6); opacity:.5;}
+.card-tile.locked .card-name{color:var(--lock);}
+.card-tile.locked:after{content:"🔒"; position:absolute; top:10px; right:12px; font-size:16px;}
+
 .header-row{display:flex; align-items:center; gap:10px; padding:14px 16px 4px;}
 .header-row h2{margin:0; font-size:20px; color:var(--white); text-shadow:0 2px 0 rgba(0,0,0,.15);}
 
@@ -255,6 +296,7 @@ footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; pa
   <div class="topbar" id="topbar">
     <div class="pill"><span class="icon">🪙</span><span id="coinCount">0</span></div>
     <div class="hearts" id="heartsBar"></div>
+    <button class="icon-btn" id="cardsBtn" title="Coleção de cartas">🎴</button>
     <button class="icon-btn" id="statsBtn" title="Estatísticas">📊</button>
   </div>
 
@@ -264,6 +306,8 @@ footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; pa
     <div class="hero-sub">A aventura de Numi no Reino dos Números</div>
     <div class="mascot-wrap"><div class="mascot" id="mascotHome">MASCOT</div></div>
     <div class="speech" id="homeSpeech">Vamos treinar a tabuada hoje?</div>
+
+    <div class="mission-card" id="missionCard"></div>
 
     <div class="path-wrap" id="pathWrap"></div>
 
@@ -278,7 +322,10 @@ footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; pa
   <section class="screen" id="screen-game">
     <div class="game-header">
       <button class="back-btn" id="btnBack">←</button>
-      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div style="flex:1;">
+        <div class="boss-label" id="bossLabel" style="display:none;">🐲 HP do Chefão</div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
     </div>
     <div class="timer-bar" id="timerBar" style="display:none;"><div class="timer-fill" id="timerFill"></div></div>
     <div class="combo-badge" id="comboBadge">Combo x2 🔥</div>
@@ -312,6 +359,16 @@ footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; pa
 
     <div class="section-title">Precisam de reforço 💪</div>
     <div class="table-chip-row" id="weakChips"></div>
+
+    <div class="section-title">Medalhas 🏅</div>
+    <div class="stats-grid" id="achGrid"></div>
+  </section>
+
+  <!-- ============ COLEÇÃO DE CARTAS ============ -->
+  <section class="screen" id="screen-cards">
+    <div class="header-row"><button class="back-btn" id="cardsBack">←</button><h2>Coleção de Cartas</h2></div>
+    <div class="hero-sub" style="margin:0 0 10px;">Complete um mundo para ganhar a carta dele!</div>
+    <div class="cards-grid" id="cardsGrid"></div>
   </section>
 
 </div>
@@ -347,6 +404,14 @@ footer.credits{text-align:center; color:rgba(255,255,255,.6); font-size:11px; pa
     <div class="overlay-title">Dica de Numi</div>
     <div class="overlay-sub" id="tipText">Multiplicar por 2 é o mesmo que somar o número com ele mesmo!</div>
     <button class="btn btn-teal" id="btnCloseTip" style="width:100%;">Obrigado, Numi!</button>
+  </div>
+</div>
+
+<div class="ach-toast" id="achToast">
+  <span class="ach-toast-emoji" id="achToastEmoji">🏅</span>
+  <div>
+    <div class="ach-toast-label">Nova medalha!</div>
+    <div class="ach-toast-title" id="achToastTitle">Cérebro Turbo</div>
   </div>
 </div>
 
@@ -392,6 +457,10 @@ function defaultState(){
     totalWrong:0,
     daysPlayed:[],             // array of 'YYYY-MM-DD'
     dailyStats:{},             // {'YYYY-MM-DD':{correct,wrong,timeMs,count}}
+    maxComboEver:0,
+    speedyCount:0,             // respostas corretas em menos de 1.2s
+    worldsCompletedNoError:0,
+    dailyMission:null,         // {date, missions:[{id,desc,target,type,progress,reward,done}]}
     achievements:[]
   };
 }
@@ -435,26 +504,144 @@ function regenHearts(){
 }
 setInterval(regenHearts, 5000);
 
-/* ---------------- Definição das fases ---------------- */
-// Fases 1-3 seguem a especificação exata; 4+ generalizam a progressão até a tabuada 10,
-// depois multiplicação aleatória e por fim divisão.
+/* ---------------- Missão do Dia ---------------- */
+const MISSION_POOL = [
+  {id:'correct15', desc:'Acerte 15 contas hoje', target:15, type:'correct', reward:{coins:15,xp:50}},
+  {id:'correct30', desc:'Acerte 30 contas hoje', target:30, type:'correct', reward:{coins:30,xp:100}},
+  {id:'combo3',    desc:'Consiga um combo 3 vezes', target:3, type:'combo', reward:{coins:15,xp:40}},
+  {id:'world1',    desc:'Complete um mundo hoje', target:1, type:'world', reward:{coins:25,xp:80}},
+  {id:'perfect1',  desc:'Complete uma fase sem errar', target:1, type:'perfect', reward:{coins:25,xp:80}},
+];
+function seededPick(dateStr, n, count){
+  // escolha pseudo-aleatória mas estável para o dia (mesma seed = mesmas missões o dia todo)
+  let hash = 0;
+  for(let i=0;i<dateStr.length;i++) hash = (hash*31 + dateStr.charCodeAt(i)) >>> 0;
+  const pool = [...Array(n).keys()];
+  const picked = [];
+  for(let i=0;i<count && pool.length;i++){
+    hash = (hash*1103515245 + 12345) >>> 0;
+    const idx = hash % pool.length;
+    picked.push(pool.splice(idx,1)[0]);
+  }
+  return picked;
+}
+function ensureDailyMissions(){
+  const t = todayStr();
+  if(state.dailyMission && state.dailyMission.date === t) return;
+  const idxs = seededPick(t, MISSION_POOL.length, 2);
+  state.dailyMission = {
+    date: t,
+    missions: idxs.map(i=>({...MISSION_POOL[i], progress:0, done:false}))
+  };
+  save();
+}
+function updateMissionProgress(type, amount=1){
+  ensureDailyMissions();
+  let changed = false;
+  state.dailyMission.missions.forEach(m=>{
+    if(m.type===type && !m.done){
+      m.progress = Math.min(m.target, m.progress + amount);
+      changed = true;
+      if(m.progress >= m.target){
+        m.done = true;
+        state.coins += m.reward.coins; state.xp += m.reward.xp;
+        showAchievementToast({emoji:'🎯', title:'Missão: '+m.desc});
+      }
+    }
+  });
+  if(changed){ save(); renderTop(); renderMissionCard(); }
+}
+function renderMissionCard(){
+  ensureDailyMissions();
+  const el = document.getElementById('missionCard');
+  el.innerHTML = `<div class="mission-title">📋 Missão do Dia</div>` +
+    state.dailyMission.missions.map(m=>{
+      const pct = Math.round(m.progress/m.target*100);
+      return `<div class="mission-row ${m.done?'done':''}">
+        <span class="mission-check">${m.done?'✅':'⬜'}</span>
+        <div class="mission-body">
+          <div class="mission-desc">${m.desc} ${m.done?'':`(${m.progress}/${m.target})`}</div>
+          <div class="mission-track"><div class="mission-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+}
+// Fases 1-3 seguem a especificação exata (2 depois 3 opções); 4+ generalizam a progressão.
+// Cada fase agora representa um "mundo" temático com cor, emoji e carta colecionável própria.
 const LEVELS = [
-  {id:1, title:'Vale do 2 e 3',  tables:[2,3],             options:2, need:15, op:'mul'},
-  {id:2, title:'Colina do 4',    tables:[2,3,4],           options:3, need:15, op:'mul'},
-  {id:3, title:'Floresta do 5',  tables:[2,3,4,5],         options:4, need:15, op:'mul'},
-  {id:4, title:'Caverna do 6',   tables:[2,3,4,5,6],       options:4, need:18, op:'mul'},
-  {id:5, title:'Torre do 7',     tables:[2,3,4,5,6,7],     options:4, need:18, op:'mul'},
-  {id:6, title:'Praia do 8',     tables:[2,3,4,5,6,7,8],   options:4, need:18, op:'mul'},
-  {id:7, title:'Montanha do 9',  tables:[2,3,4,5,6,7,8,9], options:4, need:20, op:'mul'},
-  {id:8, title:'Castelo do 10',  tables:[1,2,3,4,5,6,7,8,9,10], options:4, need:20, op:'mul'},
-  {id:9, title:'Portal Aleatório', tables:[1,2,3,4,5,6,7,8,9,10,11,12], options:4, need:20, op:'mul'},
-  {id:10,title:'Templo da Divisão', tables:[2,3,4,5,6,7,8,9,10], options:4, need:20, op:'div'},
+  {id:1, title:'Floresta do 2 e Praia do 3', emoji:'🌱', tables:[2,3],             options:2, need:15, op:'mul', bgTop:'#8FE3A6', bgMid:'#4FC98A', bgBottom:'#2E9C71', cardName:'Coelho Esperto',   cardEmoji:'🐰'},
+  {id:2, title:'Castelo do 4',    emoji:'🏰', tables:[2,3,4],           options:3, need:15, op:'mul', bgTop:'#C9B8F5', bgMid:'#9B7FEF', bgBottom:'#6B4FA0', cardName:'Cavaleiro Numérico', cardEmoji:'⚔️'},
+  {id:3, title:'Espaço do 5',     emoji:'🚀', tables:[2,3,4,5],         options:4, need:15, op:'mul', bgTop:'#6B7FD1', bgMid:'#3E4C9C', bgBottom:'#1C2454', cardName:'Robô Estelar',       cardEmoji:'🤖'},
+  {id:4, title:'Montanha do 6',   emoji:'🐉', tables:[2,3,4,5,6],       options:4, need:18, op:'mul', bgTop:'#9FBF9C', bgMid:'#5F8C68', bgBottom:'#33513A', cardName:'Dragão da Montanha', cardEmoji:'🐉'},
+  {id:5, title:'Mundo Jurássico do 7', emoji:'🦖', tables:[2,3,4,5,6,7], options:4, need:18, op:'mul', bgTop:'#B8D18A', bgMid:'#6FA84C', bgBottom:'#3D6B2A', cardName:'T-Rex Multiplicador', cardEmoji:'🦖'},
+  {id:6, title:'Chefão: Dragão da Tabuada do 7', emoji:'🐲', tables:[7], options:4, need:10, op:'mul', isBoss:true, questionSeconds:6,
+    bgTop:'#3A1F1F', bgMid:'#6B1F1F', bgBottom:'#1A0D0D', cardName:'Escama do Dragão', cardEmoji:'🐲'},
+  {id:7, title:'Vulcão do 8',     emoji:'🌋', tables:[2,3,4,5,6,7,8],   options:4, need:18, op:'mul', bgTop:'#FFB37A', bgMid:'#E5623F', bgBottom:'#8C2A1E', cardName:'Fênix de Fogo',      cardEmoji:'🔥'},
+  {id:8, title:'Reino Gelado do 9', emoji:'❄️', tables:[2,3,4,5,6,7,8,9], options:4, need:20, op:'mul', bgTop:'#E4F6FF', bgMid:'#9FD8F0', bgBottom:'#4A8FB5', cardName:'Urso Polar Sábio',  cardEmoji:'🐻‍❄️'},
+  {id:9, title:'Reino Dourado do 10', emoji:'👑', tables:[1,2,3,4,5,6,7,8,9,10], options:4, need:20, op:'mul', bgTop:'#FFEBA8', bgMid:'#FFC93C', bgBottom:'#B4790F', cardName:'Leão Dourado', cardEmoji:'🦁'},
+  {id:10, title:'Portal Aleatório', emoji:'🌀', tables:[1,2,3,4,5,6,7,8,9,10,11,12], options:4, need:20, op:'mul', bgTop:'#E0C8F5', bgMid:'#A87FE0', bgBottom:'#5C3A8C', cardName:'Raposa das Estrelas', cardEmoji:'🦊'},
+  {id:11,title:'Templo da Divisão', emoji:'🏛️', tables:[2,3,4,5,6,7,8,9,10], options:4, need:20, op:'div', bgTop:'#D8D4E8', bgMid:'#8F86B5', bgBottom:'#443A6B', cardName:'Coruja Sábia', cardEmoji:'🦉'},
+  {id:12, title:'Chefão Final: Guardião Dourado', emoji:'🐲', tables:[1,2,3,4,5,6,7,8,9,10], options:4, need:15, op:'mul', isBoss:true, questionSeconds:5,
+    bgTop:'#3A2E10', bgMid:'#7A5C10', bgBottom:'#1A1406', cardName:'Coroa do Guardião', cardEmoji:'👑'},
 ];
 
 function levelById(id){ return LEVELS.find(l=>l.id===id); }
 function getProgress(id){
   if(!state.levelProgress[id]) state.levelProgress[id] = {correct:0};
   return state.levelProgress[id];
+}
+
+/* ---------------- Tema visual do mundo (cores dinâmicas por tabuada) ---------------- */
+function applyWorldTheme(level){
+  document.body.style.background = `linear-gradient(180deg, ${level.bgTop} 0%, ${level.bgMid} 55%, ${level.bgBottom} 100%)`;
+}
+function resetWorldTheme(){
+  document.body.style.background = '';
+}
+
+/* ---------------- Medalhas (conquistas engraçadas) ---------------- */
+const ACHIEVEMENTS = [
+  {id:'first_win',   title:'Primeira Vitória',        emoji:'🏆', cond:s=> s.unlockedLevel>1},
+  {id:'brain_100',   title:'Cérebro Turbo',           emoji:'🧠', cond:s=> s.totalCorrect>=100},
+  {id:'rocket_500',  title:'Foguete da Matemática',   emoji:'🚀', cond:s=> s.totalCorrect>=500},
+  {id:'legend_1000', title:'Lenda da Tabuada',        emoji:'👑', cond:s=> s.totalCorrect>=1000},
+  {id:'combo_master',title:'Mestre do Combo',         emoji:'🔥', cond:s=> s.maxComboEver>=5},
+  {id:'speedster',   title:'Velocista',               emoji:'⚡', cond:s=> s.speedyCount>=20},
+  {id:'dragon_tamer',title:'Domador de Dragões',      emoji:'🐉', cond:s=> s.unlockedLevel>=4},
+  {id:'week_streak', title:'Semana Completa',         emoji:'📅', cond:s=> currentStreak()>=7},
+  {id:'month_streak',title:'30 Dias Estudando',       emoji:'🌟', cond:s=> currentStreak()>=30},
+  {id:'no_error',    title:'Sem Errar',               emoji:'🎯', cond:s=> s.worldsCompletedNoError>=1},
+];
+
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(!state.achievements.includes(a.id) && a.cond(state)){
+      state.achievements.push(a.id);
+      save();
+      showAchievementToast(a);
+    }
+  });
+}
+
+let toastQueue = [];
+let toastShowing = false;
+function showAchievementToast(a){
+  toastQueue.push(a);
+  if(!toastShowing) drainToastQueue();
+}
+function drainToastQueue(){
+  if(!toastQueue.length){ toastShowing=false; return; }
+  toastShowing = true;
+  const a = toastQueue.shift();
+  document.getElementById('achToastEmoji').textContent = a.emoji;
+  document.getElementById('achToastTitle').textContent = a.title;
+  const toast = document.getElementById('achToast');
+  toast.classList.add('show');
+  sfxLevelUp();
+  setTimeout(()=>{
+    toast.classList.remove('show');
+    setTimeout(drainToastQueue, 400);
+  }, 2400);
 }
 
 /* ---------------- Repetição espaçada (estilo Leitner: caixas 1-6) ---------------- */
@@ -626,6 +813,8 @@ const SPEECHES = [
   'Bora conquistar mais uma fase?'
 ];
 function renderHome(){
+  resetWorldTheme();
+  renderMissionCard();
   document.getElementById('homeSpeech').textContent = SPEECHES[Math.floor(Math.random()*SPEECHES.length)];
   const wrap = document.getElementById('pathWrap');
   wrap.innerHTML = '';
@@ -644,7 +833,7 @@ function renderHome(){
       ${idx < LEVELS.length-1 ? '<div class="path-line"></div>' : ''}
       <button class="${cls}" data-level="${lvl.id}">
         ${done ? '<span class="badge">🏅</span>' : ''}
-        ${unlocked ? lvl.id : '🔒'}
+        ${unlocked ? lvl.emoji : '🔒'}
       </button>
       <div class="node-info">
         <div class="node-title">${lvl.title}</div>
@@ -663,9 +852,12 @@ let session = null; // {level, mode, combo, correctStreak, timerId, timeLeft}
 function startLevel(levelId, mode='level'){
   if(state.hearts <= 0 && mode!=='treino'){ openOverlay('overlayNoHearts'); return; }
   const level = levelById(levelId);
-  session = { level, mode, combo:1, correctStreak:0, timeMode:false };
+  session = { level, mode, combo:1, correctStreak:0, timeMode:false, errorsThisLevel:0, isBoss:!!level.isBoss };
+  applyWorldTheme(level);
   document.getElementById('answersWrap').className = 'answers ' + (level.options===2?'two':level.options===3?'three':'');
-  document.getElementById('timerBar').style.display = 'none';
+  document.getElementById('bossLabel').style.display = level.isBoss ? 'block' : 'none';
+  document.getElementById('progressFill').classList.toggle('boss', !!level.isBoss);
+  document.getElementById('timerBar').style.display = level.isBoss ? 'block' : 'none';
   updateProgressBar();
   showScreen('screen-game');
   nextQuestion();
@@ -673,6 +865,7 @@ function startLevel(levelId, mode='level'){
 
 function startTreino(){
   session = { level: levelById(state.unlockedLevel<=LEVELS.length?state.unlockedLevel:LEVELS.length), mode:'treino', combo:1, correctStreak:0, timeMode:false };
+  applyWorldTheme(session.level);
   document.getElementById('answersWrap').className = 'answers ' + (session.level.options===2?'two':session.level.options===3?'three':'');
   document.getElementById('timerBar').style.display = 'none';
   document.getElementById('progressFill').style.width = '100%';
@@ -683,6 +876,7 @@ function startTreino(){
 function startContraTempo(){
   const lvl = levelById(Math.min(state.unlockedLevel, LEVELS.length));
   session = { level:{...lvl, options:4}, mode:'tempo', combo:1, correctStreak:0, timeMode:true, timeLeft:60, score:0 };
+  applyWorldTheme(lvl);
   document.getElementById('answersWrap').className = 'answers';
   document.getElementById('timerBar').style.display = 'block';
   document.getElementById('progressFill').style.width='100%';
@@ -720,6 +914,12 @@ function nextQuestion(){
   document.getElementById('comboBadge').classList.remove('show');
   currentQ = generateQuestion(session.level);
   session.qStartTime = Date.now();
+  clearInterval(session.qTimerId);
+  if(session.isBoss){
+    session.qTimeLeft = session.level.questionSeconds || 6;
+    document.getElementById('timerFill').style.width = '100%';
+    session.qTimerId = setInterval(tickBossTimer, 100);
+  }
   const opts = generateOptions(currentQ);
   document.getElementById('qtext').textContent = currentQ.text;
   document.getElementById('qhint').textContent = '';
@@ -738,7 +938,19 @@ const RIGHT_MSGS = ['Isso aí! 🎉','Mandou bem!','Voando alto! 🚀','Você é
 const RIGHT_MSGS_FAST = ['Você está ficando rápido! ⚡','Nem precisou pensar! 🧠','Isso já é de cor! 🔥'];
 const WRONG_MSGS = ['Essa quase! Vamos guardar na memória 💭','Você está aprendendo!','Foi por pouco!','Continue tentando!'];
 
+function tickBossTimer(){
+  session.qTimeLeft -= 0.1;
+  const pct = Math.max(0, session.qTimeLeft / (session.level.questionSeconds||6) * 100);
+  document.getElementById('timerFill').style.width = pct+'%';
+  if(session.qTimeLeft <= 0){
+    clearInterval(session.qTimerId);
+    document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
+    answerSelected(null, document.createElement('button')); // tempo esgotado conta como erro
+  }
+}
+
 function answerSelected(val, btn){
+  clearInterval(session.qTimerId);
   document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
   const correct = val === currentQ.answer;
   const key = currentQ.key;
@@ -760,6 +972,8 @@ function answerSelected(val, btn){
     session.correctStreak++;
     state.bestStreak = Math.max(state.bestStreak, session.correctStreak);
     session.combo = session.correctStreak>=10?5:session.correctStreak>=6?3:session.correctStreak>=3?2:1;
+    state.maxComboEver = Math.max(state.maxComboEver, session.combo);
+    if(answerMs < 1200) state.speedyCount++;
     const coinsGain = 2*session.combo;
     const xpGain = 10*session.combo;
     state.coins += coinsGain; state.xp += xpGain;
@@ -798,6 +1012,7 @@ function answerSelected(val, btn){
     document.getElementById('feedbackMsg').textContent = WRONG_MSGS[Math.floor(Math.random()*WRONG_MSGS.length)];
     bounceMascot('sad');
     scheduleAfterAnswer(key, false);
+    session.errorsThisLevel = (session.errorsThisLevel||0) + 1;
     if(session.mode!=='treino' && session.mode!=='tempo'){
       state.hearts = Math.max(0, state.hearts-1);
       if(!state.lastHeartLostAt) state.lastHeartLostAt = Date.now();
@@ -807,6 +1022,11 @@ function answerSelected(val, btn){
   save();
   registerDay();
   renderTop();
+  checkAchievements();
+  if(correct){
+    updateMissionProgress('correct', 1);
+    if([3,6,10].includes(session.correctStreak)) updateMissionProgress('combo', 1);
+  }
 
   const delay = correct ? 750 : 1300;
   setTimeout(()=>{
@@ -861,20 +1081,31 @@ function spawnConfetti(){
 
 function completeLevel(){
   clearInterval(session?.timerId);
+  clearInterval(session?.qTimerId);
   const lvl = session.level;
+  const wasAlreadyDone = state.unlockedLevel > lvl.id;
   if(state.unlockedLevel === lvl.id){
     state.unlockedLevel = Math.min(LEVELS.length, lvl.id+1);
   }
+  if(!session.errorsThisLevel) state.worldsCompletedNoError++;
   state.hearts = state.maxHearts;
   state.lastHeartLostAt = null;
   save(); renderTop();
   sfxLevelUp();
-  document.getElementById('levelUpTitle').textContent = lvl.title + ' concluída!';
-  document.getElementById('levelUpSub').textContent = 'Numi está muito orgulhoso de você!';
-  document.getElementById('rewardCoins').textContent = '+30';
-  document.getElementById('rewardXp').textContent = '+100';
+  const coinReward = lvl.isBoss ? 80 : 30;
+  const xpReward = lvl.isBoss ? 250 : 100;
+  document.querySelector('#overlayLevelUp .medal').textContent = lvl.isBoss ? '🐲' : '🏅';
+  document.getElementById('levelUpTitle').textContent = lvl.isBoss ? 'Chefão derrotado!' : (lvl.title + ' concluída!');
+  document.getElementById('levelUpSub').textContent = wasAlreadyDone
+    ? 'Numi está muito orgulhoso de você!'
+    : `Carta desbloqueada: ${lvl.cardEmoji} ${lvl.cardName}!`;
+  document.getElementById('rewardCoins').textContent = '+'+coinReward;
+  document.getElementById('rewardXp').textContent = '+'+xpReward;
   document.getElementById('rewardHearts').textContent = 'Cheio ❤️';
-  state.coins += 30; state.xp += 100; save(); renderTop();
+  state.coins += coinReward; state.xp += xpReward; save(); renderTop();
+  checkAchievements();
+  updateMissionProgress('world', 1);
+  if(!session.errorsThisLevel) updateMissionProgress('perfect', 1);
   openOverlay('overlayLevelUp');
 }
 
@@ -914,12 +1145,28 @@ document.getElementById('btnBackHome2').addEventListener('click', ()=>{
 /* ---------------- Navegação geral ---------------- */
 document.getElementById('btnBack').addEventListener('click', ()=>{
   clearInterval(session?.timerId);
+  clearInterval(session?.qTimerId);
   showScreen('screen-home'); renderHome();
 });
 document.getElementById('btnTreino').addEventListener('click', startTreino);
 document.getElementById('btnTempo').addEventListener('click', startContraTempo);
 document.getElementById('statsBtn').addEventListener('click', ()=>{ renderStats(); showScreen('screen-stats'); });
 document.getElementById('statsBack').addEventListener('click', ()=>{ showScreen('screen-home'); renderHome(); });
+document.getElementById('cardsBtn').addEventListener('click', ()=>{ renderCards(); showScreen('screen-cards'); });
+document.getElementById('cardsBack').addEventListener('click', ()=>{ showScreen('screen-home'); renderHome(); });
+
+/* ---------------- Coleção de cartas ---------------- */
+function renderCards(){
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = LEVELS.map(lvl=>{
+    const unlocked = lvl.id < state.unlockedLevel;
+    return `<div class="card-tile ${unlocked?'':'locked'}">
+      <span class="card-emoji">${unlocked ? lvl.cardEmoji : '❓'}</span>
+      <div class="card-name">${unlocked ? lvl.cardName : '???'}</div>
+      <div class="card-world">${lvl.emoji} ${lvl.title}</div>
+    </div>`;
+  }).join('');
+}
 
 /* ---------------- Estatísticas ---------------- */
 function renderStats(){
@@ -993,6 +1240,16 @@ function renderStats(){
       </div>
       <div class="race-msg">${msg}</div>`;
   }
+
+  // ---- medalhas ----
+  const achGrid = document.getElementById('achGrid');
+  achGrid.innerHTML = ACHIEVEMENTS.map(a=>{
+    const got = state.achievements.includes(a.id);
+    return `<div class="stat-card" style="${got?'':'opacity:.45;'}">
+      <div class="stat-num" style="font-size:26px;">${got ? a.emoji : '🔒'}</div>
+      <div class="stat-label">${a.title}</div>
+    </div>`;
+  }).join('');
 }
 
 /* ---------------- Inicialização ---------------- */
